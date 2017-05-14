@@ -302,6 +302,13 @@
     /**
      * @private
      */
+    getWindowWidth: function() {
+        return window.innerWidth || document.documentElement.clientWidth;
+    },
+
+    /**
+     * @private
+     */
     addEvtListener: function(el, evtName, fn) {
       if(el) {
         return el.addEventListener ? el.addEventListener(evtName, fn, false) : el.attachEvent('on' + evtName, fn);
@@ -706,6 +713,26 @@
 
       // ACCOUNT FOR FIXED POSITION ELEMENTS
       el.style.position = (step.fixedElement ? 'fixed' : 'absolute');
+
+      // ADJUST LEFT POSITION IF BUBBLE IS UT OF THE WINDOW
+      var windowWidth = utils.getWindowWidth();
+      if(left + bubbleBoundingWidth > windowWidth)
+      {
+          var delta = windowWidth - left - bubbleBoundingWidth;
+          left += delta;
+
+          var arr = arrowEl.style[arrowPos];
+          if(!arr)
+          {
+            arr = 0;
+          }
+          else
+          {
+            arr = arr.substr(0, arr.length - 2);
+          }
+          arr -= delta;
+          arrowEl.style[arrowPos] = arr + 'px';
+      }
 
       el.style.top = top + 'px';
       el.style.left = left + 'px';
