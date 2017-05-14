@@ -1400,115 +1400,202 @@
      * @private
      * @param {Function} cb Callback to invoke after done scrolling.
      */
-    adjustWindowScroll = function(cb) {
-      var bubble         = getBubble(),
+        adjustWindowScroll = function(cb) {
 
-          // Calculate the bubble element top and bottom position
-          bubbleEl       = bubble.element,
-          bubbleTop      = utils.getPixelValue(bubbleEl.style.top),
-          bubbleBottom   = bubbleTop + utils.getPixelValue(bubbleEl.offsetHeight),
+        var bubble         = getBubble(),
+            currStep       = getCurrStep(),
 
-          // Calculate the target element top and bottom position
-          targetEl       = utils.getStepTarget(getCurrStep()),
-          targetBounds   = targetEl.getBoundingClientRect(),
-          targetElTop    = targetBounds.top + utils.getScrollTop(),
-          targetElBottom = targetBounds.bottom + utils.getScrollTop(),
+            // Calculate the bubble element top and bottom position
+            bubbleEl       = bubble.element,
+            bubbleTop      = utils.getPixelValue(bubbleEl.style.top),
+            bubbleBottom   = bubbleTop + utils.getPixelValue(bubbleEl.offsetHeight),
 
-          // The higher of the two: bubble or target
-          targetTop      = (bubbleTop < targetElTop) ? bubbleTop : targetElTop,
-          // The lower of the two: bubble or target
-          targetBottom   = (bubbleBottom > targetElBottom) ? bubbleBottom : targetElBottom,
+            // Calculate the target element top and bottom position
+            targetEl       = utils.getStepTarget(currStep),
+            targetBounds   = targetEl.getBoundingClientRect(),
+            targetElTop    = targetBounds.top + utils.getScrollTop(),
+            targetElBottom = targetBounds.bottom + utils.getScrollTop(),
 
-          // Calculate the current viewport top and bottom
-          windowTop      = utils.getScrollTop(),
-          windowBottom   = windowTop + utils.getWindowHeight(),
+            // The higher of the two: bubble or target
+            targetTop      = (bubbleTop < targetElTop) ? bubbleTop : targetElTop,
+            // The lower of the two: bubble or target
+            targetBottom   = (bubbleBottom > targetElBottom) ? bubbleBottom : targetElBottom,
 
-          // This is our final target scroll value.
-          scrollToVal    = targetTop - getOption('scrollTopMargin'),
+            // This is our final target scroll value.
+            scrollToVal    = targetTop - getOption('scrollTopMargin'),
 
-          scrollEl,
-          yuiAnim,
-          yuiEase,
-          direction,
-          scrollIncr,
-          scrollTimeout,
-          scrollTimeoutFn;
+            scrollEl,
+            yuiAnim,
+            yuiEase,
+            direction,
+            scrollIncr,
+            scrollTimeout,
+            scrollTimeoutFn;
 
-      // Target and bubble are both visible in viewport
-      if (targetTop >= windowTop && (targetTop <= windowTop + getOption('scrollTopMargin') || targetBottom <= windowBottom)) {
-        if (cb) { cb(); } // HopscotchBubble.show
-      }
 
-      // Abrupt scroll to scroll target
-      else if (!getOption('smoothScroll')) {
-        window.scrollTo(0, scrollToVal);
+        // Calculate the current viewport top and bottom
+        var windowTop      = utils.getScrollTop(),
+            windowBottom   = windowTop + utils.getWindowHeight();
 
-        if (cb) { cb(); } // HopscotchBubble.show
-      }
-
-      // Smooth scroll to scroll target
-      else {
-        // Use YUI if it exists
-        if (typeof YAHOO             !== undefinedStr &&
-            typeof YAHOO.env         !== undefinedStr &&
-            typeof YAHOO.env.ua      !== undefinedStr &&
-            typeof YAHOO.util        !== undefinedStr &&
-            typeof YAHOO.util.Scroll !== undefinedStr) {
-          scrollEl = YAHOO.env.ua.webkit ? document.body : document.documentElement;
-          yuiEase = YAHOO.util.Easing ? YAHOO.util.Easing.easeOut : undefined;
-          yuiAnim = new YAHOO.util.Scroll(scrollEl, {
-            scroll: { to: [0, scrollToVal] }
-          }, getOption('scrollDuration')/1000, yuiEase);
-          yuiAnim.onComplete.subscribe(cb);
-          yuiAnim.animate();
+        // Target and bubble are both visible in viewport
+        if (targetTop >= windowTop && (targetTop <= windowTop + getOption('scrollTopMargin') || targetBottom <= windowBottom)) {
+            if (cb) { cb(); } // HopscotchBubble.show
         }
 
-        // Use jQuery if it exists
-        else if (hasJquery) {
-          jQuery('body, html').animate({ scrollTop: scrollToVal }, getOption('scrollDuration'), cb);
-        }
+        if(!currStep.scrollElement)
+        {
+            // Abrupt scroll to scroll target
+            if ((currStep.smoothScroll===false) || !getOption('smoothScroll')) {
+                window.scrollTo(0, scrollToVal);
 
-        // Use my crummy setInterval scroll solution if we're using plain, vanilla Javascript.
-        else {
-          if (scrollToVal < 0) {
-            scrollToVal = 0;
-          }
-
-          // 48 * 10 == 480ms scroll duration
-          // make it slightly less than CSS transition duration because of
-          // setInterval overhead.
-          // To increase or decrease duration, change the divisor of scrollIncr.
-          direction = (windowTop > targetTop) ? -1 : 1; // -1 means scrolling up, 1 means down
-          scrollIncr = Math.abs(windowTop - scrollToVal) / (getOption('scrollDuration')/10);
-          scrollTimeoutFn = function() {
-            var scrollTop = utils.getScrollTop(),
-                scrollTarget = scrollTop + (direction * scrollIncr);
-
-            if ((direction > 0 && scrollTarget >= scrollToVal) ||
-                (direction < 0 && scrollTarget <= scrollToVal)) {
-              // Overshot our target. Just manually set to equal the target
-              // and clear the interval
-              scrollTarget = scrollToVal;
-              if (cb) { cb(); } // HopscotchBubble.show
-              window.scrollTo(0, scrollTarget);
-              return;
+                if (cb) { cb(); } // HopscotchBubble.show
             }
 
-            window.scrollTo(0, scrollTarget);
+            // Smooth scroll to scroll target
+            else {
+                // Use YUI if it exists
+                if (typeof YAHOO             !== undefinedStr &&
+                    typeof YAHOO.env         !== undefinedStr &&
+                    typeof YAHOO.env.ua      !== undefinedStr &&
+                    typeof YAHOO.util        !== undefinedStr &&
+                    typeof YAHOO.util.Scroll !== undefinedStr) {
+                    scrollEl = YAHOO.env.ua.webkit ? document.body : document.documentElement;
+                    yuiEase = YAHOO.util.Easing ? YAHOO.util.Easing.easeOut : undefined;
+                    yuiAnim = new YAHOO.util.Scroll(scrollEl, {
+                        scroll: { to: [0, scrollToVal] }
+                    }, getOption('scrollDuration')/1000, yuiEase);
+                    yuiAnim.onComplete.subscribe(cb);
+                    yuiAnim.animate();
+                }
 
-            if (utils.getScrollTop() === scrollTop) {
-              // Couldn't scroll any further.
-              if (cb) { cb(); } // HopscotchBubble.show
-              return;
+                // Use jQuery if it exists
+                else if (hasJquery) {
+                    jQuery('body, html').animate({ scrollTop: scrollToVal }, getOption('scrollDuration'), cb);
+                }
+
+                // Use my crummy setInterval scroll solution if we're using plain, vanilla Javascript.
+                else {
+                    if (scrollToVal < 0) {
+                        scrollToVal = 0;
+                    }
+
+                    // 48 * 10 == 480ms scroll duration
+                    // make it slightly less than CSS transition duration because of
+                    // setInterval overhead.
+                    // To increase or decrease duration, change the divisor of scrollIncr.
+                    direction = (windowTop > targetTop) ? -1 : 1; // -1 means scrolling up, 1 means down
+                    scrollIncr = Math.abs(windowTop - scrollToVal) / (getOption('scrollDuration')/10);
+                    scrollTimeoutFn = function() {
+                        var scrollTop = utils.getScrollTop(),
+                            scrollTarget = scrollTop + (direction * scrollIncr);
+
+                        if ((direction > 0 && scrollTarget >= scrollToVal) ||
+                            (direction < 0 && scrollTarget <= scrollToVal)) {
+                            // Overshot our target. Just manually set to equal the target
+                            // and clear the interval
+                            scrollTarget = scrollToVal;
+                            if (cb) { cb(); } // HopscotchBubble.show
+                            window.scrollTo(0, scrollTarget);
+                            return;
+                        }
+
+                        window.scrollTo(0, scrollTarget);
+
+                        if (utils.getScrollTop() === scrollTop) {
+                            // Couldn't scroll any further.
+                            if (cb) { cb(); } // HopscotchBubble.show
+                            return;
+                        }
+
+                        // If we reached this point, that means there's still more to scroll.
+                        setTimeout(scrollTimeoutFn, 10);
+                    };
+
+                    scrollTimeoutFn();
+                }
+            }
+        }
+        else
+        {
+            var parent = document.getElementById(currStep.scrollElement);
+            if(!parent)
+            {
+                if (cb) { cb(); } // HopscotchBubble.show
+                return;
             }
 
-            // If we reached this point, that means there's still more to scroll.
-            setTimeout(scrollTimeoutFn, 10);
-          };
+            var parentBounds   = parent.getBoundingClientRect();
 
-          scrollTimeoutFn();
+            var getTopFromParent = function(parentEl, childEl)
+            {
+                var top = 0;
+
+                var el = childEl;
+                while(el && el.offsetParent !== parentEl)
+                {
+                    top += (el.offsetTop - el.scrollTop + el.clientTop);
+                    el = el.offsetParent;
+                }
+
+                return top;
+            };
+
+            var targetTopFromParent = getTopFromParent(parent, targetEl);
+
+            scrollToVal = targetTopFromParent - parentBounds.top -  getOption('scrollTopMargin');
+
+            // Abrupt scroll to scroll target
+            if ((currStep.smoothScroll===false) ||!getOption('smoothScroll')) {
+                parent.scrollTop = scrollToVal;
+                if (cb) { cb(); } // HopscotchBubble.show
+            }
+
+            // Smooth scroll to scroll target
+            else {
+                if (scrollToVal < 0) {
+                    scrollToVal = 0;
+                }
+
+                // 48 * 10 == 480ms scroll duration
+                // make it slightly less than CSS transition duration because of
+                // setInterval overhead.
+                // To increase or decrease duration, change the divisor of scrollIncr.
+                direction = (parentBounds.top > targetTop) ? -1 : 1; // -1 means scrolling up, 1 means down
+                scrollIncr = Math.abs(parentBounds.top - scrollToVal) / (getOption('scrollDuration')/10);
+
+                scrollTimeoutFn = function() {
+                    var scrollTop = parent.scrollTop,
+                        scrollTarget = scrollTop + (direction * scrollIncr);
+
+                    if ((direction > 0 && scrollTarget >= scrollToVal) ||
+                        (direction < 0 && scrollTarget <= scrollToVal)) {
+                        // Overshot our target. Just manually set to equal the target
+                        // and clear the interval
+                        scrollTarget = scrollToVal;
+                        bubble.setPosition(currStep);
+                        if (cb) { cb(); } // HopscotchBubble.show
+                        parent.scrollTop = scrollTarget;
+                        return;
+                    }
+
+                    parent.scrollTop = scrollTarget;
+                    bubble.setPosition(currStep);
+
+                    // if (utils.getScrollTop() === scrollTop) {
+                    if (parent.scrollTop === scrollTop) {
+                        // Couldn't scroll any further.
+                        bubble.setPosition(currStep);
+                        if (cb) { cb(); } // HopscotchBubble.show
+                        return;
+                    }
+
+                    // If we reached this point, that means there's still more to scroll.
+                    setTimeout(scrollTimeoutFn, 10);
+                };
+
+                scrollTimeoutFn();
+            }
         }
-      }
     },
 
     /**
@@ -1764,6 +1851,7 @@
           targetEl     = utils.getStepTarget(step);
 
       function showBubble() {
+        bubble.setPosition(step);
         bubble.show();
         utils.invokeEventCallbacks('show', step.onShow);
       }
@@ -2308,13 +2396,14 @@
      * - bubbleWidth:     Number   - Default bubble width. Defaults to 280.
      * - bubblePadding:   Number   - DEPRECATED. Default bubble padding. Defaults to 15.
      * - smoothScroll:    Boolean  - should the page scroll smoothly to the next
-     *                               step? Defaults to TRUE.
+     *                               step? Defaults to TRUE. Possibility to override in step options
      * - scrollDuration:  Number   - Duration of page scroll. Only relevant when
      *                               smoothScroll is set to true. Defaults to
      *                               1000ms.
      * - scrollTopMargin: NUMBER   - When the page scrolls, how much space should there
      *                               be between the bubble/targetElement and the top
      *                               of the viewport? Defaults to 200.
+     * - scrollElement: String:    - Possibility to select DOM element to scroll
      * - showCloseButton: Boolean  - should the tour bubble show a close (X) button?
      *                               Defaults to TRUE.
      * - showPrevButton:  Boolean  - should the bubble have the Previous button?
